@@ -1,230 +1,303 @@
-# nanochat
+# 🚀 NanoChat - Pretrained & Fine-Tuned (Depth-12)
 
-![nanochat logo](dev/nanochat.png)
-![scaling laws](dev/scaling_laws_jan26.png)
+Welcome to your personalized **NanoChat** repository! This project hosts a custom Depth-12 (286M parameter) GPT-2 grade model, pretrained and fine-tuned from scratch on RunPod.
 
-nanochat is the simplest experimental harness for training LLMs. It is designed to run on a single GPU node, the code is minimal/hackable, and it covers all major LLM stages including tokenization, pretraining, finetuning, evaluation, and inference. For example, you can train your own GPT-2 capability LLM (which cost ~$43,000 to train in 2019) for only $48 (~2 hours of 8XH100 GPU node) and then talk to it over a simple CLI. On a spot instance, the total cost can be closer to ~$15. More generally, nanochat is configured out of the box to train an entire miniseries of compute-optimal models by setting one single complexity dial: `--depth`, the number of layers in the GPT transformer model (GPT-2 capability happens to be approximately depth 26). All other hyperparameters (the width of the transformer, number of heads, learning rate adjustments, training horizons, weight decays, ...) are calculated automatically in an optimal way.
+- **Upstream Repository Details & Guide:** See **[README_original.md](README_original.md)** for the original Karpathy framework features and codebase guides.
+- **Hugging Face Model Repository:** Both your pretrained Base and conversational SFT weights (totaling ~3.8 GB) are safely hosted and publicly available at **[huggingface.co/niuk77/nanochat-d12](https://huggingface.co/niuk77/nanochat-d12)**.
 
-For questions about the repo, I recommend either using [DeepWiki](https://deepwiki.com/karpathy/nanochat) from Devin/Cognition to ask questions about the repo, or use the [Discussions tab](https://github.com/karpathy/nanochat/discussions), or come by the [#nanochat](https://discord.com/channels/1020383067459821711/1427295580895314031) channel on Discord.
+---
 
-## Time-to-GPT-2 Leaderboard
+# RunPod Training Log & Guide
 
-Presently, the main focus of development is on tuning the pretraining stage, which takes the most amount of compute. Inspired by the modded-nanogpt repo and to incentivise progress and community collaboration, nanochat maintains a leaderboard for a "GPT-2 speedrun", which is the wall-clock time required to train a nanochat model to GPT-2 grade capability, as measured by the DCLM CORE score. The [runs/speedrun.sh](runs/speedrun.sh) script always reflects the reference way to train GPT-2 grade model and talk to it. The current leaderboard looks as follows:
+This file documents the remote training setup created on RunPod, including how to connect, monitor, and manage the active pod.
 
-| # | time | val_bpb | CORE | Description | Date | Commit | Contributors |
-|---|-------------|---------|------|-------------|------|--------|--------------|
-| 0 | 168 hours | - | 0.2565 | Original OpenAI GPT-2 checkpoint | 2019 | - | OpenAI |
-| 1 | 3.04 | 0.74833 | 0.2585 | d24 baseline, slightly overtrained | Jan 29 2026 | 348fbb3 | @karpathy |
-| 2 | 2.91 | 0.74504 | 0.2578 | d26 slightly undertrained **+fp8** | Feb 2 2026 | a67eba3 | @karpathy |
-| 3 | 2.76 | 0.74645 | 0.2602 | bump total batch size to 1M tokens | Feb 5 2026 | 2c062aa | @karpathy |
-| 4 | 2.02 | 0.71854 | 0.2571 | change dataset to NVIDIA ClimbMix | Mar 4 2026 | 324e69c | @ddudek @karpathy |
-| 5 | 1.80 | 0.71808 | 0.2690 | autoresearch [round 1](https://x.com/karpathy/status/2031135152349524125) | Mar 9 2026 | 6ed7d1d | @karpathy |
-| 6 | 1.65 | 0.71800 | 0.2626 | autoresearch round 2 | Mar 14 2026 | a825e63 | @karpathy |
+---
 
-The primary metric we care about is "time to GPT-2" - the wall clock time needed to outperform the GPT-2 (1.6B) CORE metric on an 8XH100 GPU node. The GPT-2 CORE score is 0.256525. In 2019, the training of GPT-2 cost approximately $43,000 so it is incredible that due to many advances over 7 years across the stack, we can now do so much faster and for well below $100 (e.g. at the current ~$3/GPU/hr, an 8XH100 node is ~$24/hr, so 2 hours is ~$48).
+## 🚀 Active Pod Configuration
 
-See [dev/LEADERBOARD.md](dev/LEADERBOARD.md) for more docs on how to interpret and contribute to the leaderboard.
+- **Pod Name:** `nanochat-training`
+- **Pod ID:** `s06fmh4bdw8vuy`
+- **GPU:** 1x NVIDIA GeForce RTX 4090 (24GB VRAM)
+- **Hourly Cost:** $0.74/hr (Secure Cloud)
+- **Template:** Runpod Pytorch 2.4.0 (`runpod-torch-v240`)
+- **Docker Image:** `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04`
 
-## Getting started
+---
 
-### Setup
+## 🛠️ What Was Set Up
 
-nanochat uses [uv](https://docs.astral.sh/uv/) for dependency management. To install:
+1. **Codebase Synchronization:**
+   - Synced the local `/home/irom/nanochat/` directory to `/workspace/nanochat/` on the remote pod using `rsync` (ignoring `.git`, `.venv`, `.cache`, and `__pycache__`).
+2. **Environment & Dependencies:**
+   - Installed `screen` on the pod to run persistent background tasks.
+   - Installed `python3-dev` on the pod to resolve PyTorch Triton compiler issues (missing `Python.h`).
+   - Installed `uv` (fast Python package manager) in the pod.
+   - Created a local virtual environment (`.venv`) and installed GPU dependencies (`uv sync --extra gpu`).
+3. **Dataset Pre-downloading:**
+   - Downloaded all 171 base pretraining shards (~15 GB of ClimbMix data) directly to `/root/.cache/nanochat` in less than 5 seconds using RunPod's high-speed connection.
+4. **Base Model Training:**
+   - Completed standard Depth-12 pretraining (1,680 iterations) inside a `screen` session named `training`.
+   - Reached a validation compression (bits-per-byte) of `0.868`.
+5. **Supervised Fine-Tuning (SFT):**
+   - Executed SFT to train the base model for chat and conversational capabilities.
+   - SFT checkpoints generated and saved successfully.
+
+---
+
+## 🔌 How to Connect (SSH)
+
+Run the following command from your local machine to SSH into the remote pod:
 
 ```bash
-uv sync --extra gpu    # Use for CUDA (A100/H100/etc.)
-uv sync --extra cpu    # (or) Use for CPU-only / MPS
+ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673
+```
+
+---
+
+## 📊 How to Monitor Training
+
+You can monitor the training from your local terminal or by SSHing into the pod first.
+
+### Option A: From your Local Machine (No interactive SSH needed)
+
+1. **Watch the logs live (tail):**
+   - **For Base Pretraining:**
+     ```bash
+     ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "tail -f /workspace/nanochat/training.log"
+     ```
+   - **For SFT Fine-Tuning:**
+     ```bash
+     ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "tail -f /workspace/nanochat/sft.log"
+     ```
+
+2. **Check GPU usage & temperature (nvidia-smi):**
+   ```bash
+   ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "nvidia-smi"
+   ```
+
+### Option B: Interactive Monitoring (Inside the Pod)
+
+Once you have SSH'd into the pod (`ssh ...`):
+
+1. **Attach to the running screen session:**
+   ```bash
+   screen -r training
+   ```
+   *To detach and leave it running in the background, press `Ctrl + A`, then `D`.*
+
+2. **Watch the GPU utility live:**
+   ```bash
+   watch -n 1 nvidia-smi
+   ```
+
+---
+
+## 🛑 How to Stop or Restart
+
+If you need to stop, kill, or restart the training process:
+
+1. **To kill the screen session and stop all training:**
+   ```bash
+   screen -S training -X quit
+   ```
+2. **To kill python processes directly:**
+   ```bash
+   pkill -f "python"
+   ```
+
+---
+
+## 💬 Testing the Model & Prompts Guide
+
+You can prompt or chat with either the **Pretrained Base Model** or the **Conversational SFT Model** in two ways:
+1. **Directly from your local laptop terminal** (one-off single prompt via SSH)
+2. **Interactively from inside the pod** (multi-turn conversation)
+
+---
+
+### 📥 One-Off Prompting (From Local Laptop via SSH)
+
+You can query the model directly from your local machine's shell by adding the `-p "<prompt>"` flag:
+
+#### 1. Pretrained Base Model (Raw Completion)
+```bash
+ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "cd /workspace/nanochat && source .venv/bin/activate && python -m scripts.chat_cli -i base -p 'Why is the sky blue?'"
+```
+*Expected completion behavior:* Starts repeating phrases or babbling, as it is just predicting the next word without instruction-tuning.
+
+#### 2. Conversational SFT Model (Instruction Answer)
+```bash
+ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "cd /workspace/nanochat && source .venv/bin/activate && python -m scripts.chat_cli -i sft -p 'Why is the sky blue?'"
+```
+*Expected completion behavior:* Responds in a cohesive, helpful assistant format.
+
+---
+
+### 💬 Interactive Chat (From inside the RunPod Container)
+
+First, SSH into your pod (`ssh -i ... root@157.157.221.29 -p 32673`), navigate to the repository, and activate your environment:
+```bash
+cd /workspace/nanochat
 source .venv/bin/activate
 ```
 
-For development (adds pytest, matplotlib, ipykernel, transformers, etc.):
-
+#### 1. Interactive chat with raw Base Model:
 ```bash
-uv sync --extra gpu --group dev
+python -m scripts.chat_cli -i base
 ```
-
-### Reproduce and talk to GPT-2
-
-The most fun you can have is to train your own GPT-2 and talk to it. The entire pipeline to do so is contained in the single file [runs/speedrun.sh](runs/speedrun.sh), which is designed to be run on an 8XH100 GPU node. Boot up a new 8XH100 GPU box from your favorite provider (e.g. I use and like [Lambda](https://lambda.ai/service/gpu-cloud)), and kick off the training script:
-
+#### 2. Interactive chat with Conversational SFT Model:
 ```bash
-bash runs/speedrun.sh
+python -m scripts.chat_cli -i sft
 ```
+*Type `exit` or `quit` to exit, and `clear` to start a new chat history.*
 
-You may wish to do so in a screen session as this will take ~1.5 hours to run. Once it's done, you can talk to your model over the CLI. Make sure again that your local uv virtual environment is active (run `source .venv/bin/activate`), and chat:
+---
 
+### 🧪 Model Comparison Examples
+
+#### Prompt: `"Why is the sky blue?"`
+- **Base Model (Raw):**
+  > *The sky is a blueish blue because of the water that washes over it. It is not because of the sun but because of the water... [repeats]*
+- **SFT Model (Chat):**
+  > *The sky is blue, a vibrant, unforgiving landscape that is steeped in history and mythology. This blue sky is a result of the interplay of light, air, and water...*
+
+#### Try these other test prompts & Actual SFT Responses:
+
+- **Prompt:** `"What is the capital of France?"`
+  - **SFT Response:**
+    > *The capital of France, Paris, is a city that is renowned for its charming architecture, charming boutiques, and stunning natural beauty. With a rich history, the city has become a hub for trade, art, and culture...*
+
+- **Prompt:** `"What is the chemical symbol of gold?"`
+  - **SFT Response:**
+    > *The chemical symbol of gold is Au, which is the Latin word for "gold." This symbol is derived from the Latin word for "gold," meaning "gold" or "gold gold," which means "gold is a metal of great rarity and beauty."*
+
+- **Prompt:** `"What is the opposite of hot?"`
+  - **SFT Response:**
+    > *Hot is a term that refers to the cooking process where food is cooked at a high temperature, often between 400°F and 140°F, and then cooled to a low temperature... [The model goes on a culinary babble about slow-cookers!]*
+
+---
+
+## 📊 Quick Model Evaluation Guide
+
+To run a rapid, targeted evaluation benchmark without evaluating everything (which can take a while), use the `-a` (task-name) and `-x` (max-problems) parameters.
+
+### 1. From your Local Laptop Terminal (using SSH)
+Execute this command on your laptop to run a fast 10-problem test on the `ARC-Easy` benchmark of your SFT model:
 ```bash
-python -m scripts.chat_cli
+ssh -i /home/irom/.runpod/ssh/runpodctl-ssh-key root@157.157.221.29 -p 32673 "cd /workspace/nanochat && source .venv/bin/activate && python -m scripts.chat_eval -i sft -a 'ARC-Easy|ARC-Challenge|MMLU|GSM8K|HumanEval' -x 10"
 ```
 
-Get it to write stories or poems. Ask it to tell you who you are to see a hallucination. Ask it why the sky is blue. Or why it's green. The speedrun is a 4e19 FLOPs capability model so it's a bit like talking to a kindergartener :). An example conversation with a speedrun model:
-
-> **User:** Hello whats up?
->
-> **Assistant:** Hello! How can I help you today?
->
-> **User:** Why is the sky blue?
->
-> **Assistant:** The sky is blue due to an optical illusion called the Rayleigh Scattering of Light, which occurs when sunlight passes through tiny particles in the air. These particles are made up of tiny blue and violet particles that cause the light to bend in a particular way.
->
-> **User:** That's cool. Write a poem about it.
->
-> **Assistant:** In the twilight's glow, the sky is blue,<br>
-> A canvas of shimmering blue, where skies unfold,<br>
-> A world of blue, where blue and more blue,<br>
-> Are woven together in a tapestry so fine,<br>
-> Where every hue seems to sing a story.<br>
-> ...
-
-A few more notes:
-
-- The code will run just fine on the Ampere 8XA100 GPU node as well, but a bit slower.
-- All code will run just fine on even a single GPU by omitting `torchrun`, and will produce ~identical results (code will automatically switch to gradient accumulation), but you'll have to wait 8 times longer.
-- If your GPU(s) have less than 80GB, you'll have to tune some of the hyperparameters or you will OOM / run out of VRAM. Look for `--device-batch-size` in the scripts and reduce it until things fit. E.g. from 32 (default) to 16, 8, 4, 2, or even 1. Less than that you'll have to know a bit more what you're doing and get more creative.
-- Most of the code is fairly vanilla PyTorch so it should run on anything that supports that - xpu, mps, or etc, but I haven't personally exercised all of these code paths so there might be sharp edges.
-
-## Research
-
-If you are a researcher and wish to help improve nanochat, two scripts of interest are [runs/scaling_laws.sh](runs/scaling_laws.sh) and [runs/miniseries.sh](runs/miniseries.sh). See [Jan 7 miniseries v1](https://github.com/karpathy/nanochat/discussions/420) for related documentation. For quick experimentation (~5 min pretraining runs) my favorite scale is to train a 12-layer model (GPT-1 sized), e.g. like this:
-
-```
-OMP_NUM_THREADS=1 torchrun --standalone --nproc_per_node=8 -m scripts.base_train -- \
-    --depth=12 \
-    --run="d12" \
-    --model-tag="d12" \
-    --core-metric-every=999999 \
-    --sample-every=-1 \
-    --save-every=-1 \
-```
-
-This uses wandb (run name "d12"), only runs the CORE metric on last step, and it doesn't sample and save intermediate checkpoints. I like to change something in the code, re-run a d12 (or a d16 etc) and see if it helped, in an iteration loop. To see if a run helps, I like to monitor the wandb plots for:
-
-1. `val_bpb` (validation loss in vocab-size-invariant units of bits per byte) as a function of `step`, `total_training_time` and `total_training_flops`.
-2. `core_metric` (the DCLM CORE score)
-3. VRAM utilization, `train/mfu` (Model FLOPS utilization), `train/tok_per_sec` (training throughput)
-
-See an example [here](https://github.com/karpathy/nanochat/pull/498#issuecomment-3850720044).
-
-The important thing to note is that nanochat is written and configured around one single dial of complexity - the depth of the transformer. This single integer automatically determines all other hyperparameters (the width of the transformer, number of heads, learning rate adjustments, training horizons, weight decays, ...) so that the trained model comes out compute optimal. The idea is that the user doesn't have to think about or set any of this, they are simply asking for a smaller or bigger model using `--depth`, and everything "just works". By sweeping out the depth, you achieve the nanochat miniseries of compute optimal models at various sizes. GPT-2 capability model (which is of most interest at the moment) happens to be somewhere around d24-d26 range with the current code. But any candidate changes to the repo have to be principled enough that they work for all settings of depth.
-
-## Running on CPU / MPS
-
-The script [runs/runcpu.sh](runs/runcpu.sh) shows a very simple example of running on CPU or Apple Silicon. It dramatically shrinks the LLM that is being trained to make things fit into a reasonable time interval of a few ten minutes of training. You will not get strong results in this way.
-
-## Precision / dtype
-
-nanochat does not use `torch.amp.autocast`. Instead, precision is managed explicitly through a single global `COMPUTE_DTYPE` (defined in `nanochat/common.py`). By default this is auto-detected based on your hardware:
-
-| Hardware | Default dtype | Why |
-|----------|--------------|-----|
-| CUDA SM 80+ (A100, H100, ...) | `bfloat16` | Native bf16 tensor cores |
-| CUDA SM < 80 (V100, T4, ...) | `float32` | No bf16; fp16 available via `NANOCHAT_DTYPE=float16` (uses GradScaler) |
-| CPU / MPS | `float32` | Safe default. On recent macOS, MPS also runs `NANOCHAT_DTYPE=bfloat16` fine (~25% less memory, similar speed) |
-
-You can override the default with the `NANOCHAT_DTYPE` environment variable:
-
+### 2. From inside the RunPod Container
+Once SSH'd in:
 ```bash
-NANOCHAT_DTYPE=float32 python -m scripts.chat_cli -p "hello"   # force fp32
-NANOCHAT_DTYPE=bfloat16 torchrun --nproc_per_node=8 -m scripts.base_train  # force bf16
+python -m scripts.chat_eval -i sft -a "ARC-Easy|ARC-Challenge|MMLU|GSM8K|HumanEval" -x 10
 ```
 
-How it works: model weights are stored in fp32 (for optimizer precision), but our custom `Linear` layer casts them to `COMPUTE_DTYPE` during the forward pass. Embeddings are stored directly in `COMPUTE_DTYPE` to save memory. This gives us the same mixed-precision benefit as autocast but with full explicit control over what runs in which precision.
+### 🏆 Fast Evaluation Results (10-problem SFT snapshot):
 
-Note: `float16` training automatically enables a `GradScaler` in `base_train.py` to prevent gradient underflow. SFT supports this too but RL currently does not. Inference in fp16 works fine everywhere.
+| Task / Benchmark | Accuracy | Type | Description |
+| :--- | :---: | :---: | :--- |
+| **`MMLU`** | **50.00%** | Multiple Choice | Academic & professional knowledge questions |
+| **`ARC-Easy`** | **50.00%** | Multiple Choice | Elementary-level science questions |
+| **`ARC-Challenge`**| **30.00%** | Multiple Choice | Harder, reasoning-heavy science questions |
+| **`GSM8K`** | **0.00%** | Open-Ended | Grade-school math word problems |
+| **`HumanEval`** | **0.00%** | Open-Ended | Python code-generation challenges |
+| **`ChatCORE` Score**| **0.1467** | **Aggregate** | Mean centered accuracy score (Up from base model's 0.1399!) |
 
-## Guides
+### Available Evaluation Tasks:
+- `ARC-Easy` (Multiple Choice)
+- `ARC-Challenge` (Multiple Choice)
+- `MMLU` (Multiple Choice)
+- `GSM8K` (Math / Tool Use)
+- `HumanEval` (Python Code Generation)
 
-I've published a number of guides that might contain helpful information, most recent to least recent:
+---
 
-- [Feb 1 2026: Beating GPT-2 for <<$100: the nanochat journey](https://github.com/karpathy/nanochat/discussions/481)
-- [Jan 7 miniseries v1](https://github.com/karpathy/nanochat/discussions/420) documents the first nanochat miniseries of models.
-- To add new abilities to nanochat, see [Guide: counting r in strawberry (and how to add abilities generally)](https://github.com/karpathy/nanochat/discussions/164).
-- [Oct 13 2025: original nanochat post](https://github.com/karpathy/nanochat/discussions/1) introducing nanochat, though now it contains some deprecated information and the model is a lot older (with worse results) than current master.
+## 📦 Copying Results Back to Local Machine
 
-## File structure
+When training completes and you want to download checkpoints or results back to your laptop:
 
-```
-.
-├── LICENSE
-├── README.md
-├── dev
-│   ├── nanochat.png
-│   └── repackage_data_reference.py # Pretraining data shard generation
-├── nanochat
-│   ├── __init__.py                 # empty
-│   ├── checkpoint_manager.py       # Save/Load model checkpoints
-│   ├── common.py                   # Misc small utilities, quality of life
-│   ├── core_eval.py                # Evaluates base model CORE score (DCLM paper)
-│   ├── dataloader.py               # Tokenizing Distributed Data Loader
-│   ├── dataset.py                  # Download/read utils for pretraining data
-│   ├── engine.py                   # Efficient model inference with KV Cache
-│   ├── execution.py                # Allows the LLM to execute Python code as tool
-│   ├── gpt.py                      # The GPT nn.Module Transformer
-│   ├── loss_eval.py                # Evaluate bits per byte (instead of loss)
-│   ├── optim.py                    # AdamW + Muon optimizer, 1GPU and distributed
-│   └── tokenizer.py                # BPE Tokenizer wrapper in style of GPT-4
-├── pyproject.toml
-├── runs
-│   ├── miniseries.sh               # Miniseries training script
-│   ├── runcpu.sh                   # Small example of how to run on CPU/MPS
-│   ├── scaling_laws.sh             # Scaling laws experiments
-│   └── speedrun.sh                 # Train the ~$100 nanochat d20
-├── scripts
-│   ├── base_eval.py                # Base model: CORE score, bits per byte, samples
-│   ├── base_train.py               # Base model: train
-│   ├── chat_cli.py                 # Chat model: talk to over CLI
-│   ├── chat_eval.py                # Chat model: eval tasks
-│   ├── chat_rl.py                  # Chat model: reinforcement learning
-│   ├── chat_sft.py                 # Chat model: train SFT
-│   ├── infer_bench.py              # Inference: latency/throughput/VRAM bench
-│   ├── tok_eval.py                 # Tokenizer: evaluate compression rate
-│   └── tok_train.py                # Tokenizer: train it
-├── tasks
-│   ├── arc.py                      # Multiple choice science questions
-│   ├── common.py                   # TaskMixture | TaskSequence
-│   ├── gsm8k.py                    # 8K Grade School Math questions
-│   ├── humaneval.py                # Misnomer; Simple Python coding task
-│   ├── mmlu.py                     # Multiple choice questions, broad topics
-│   └── smoltalk.py                 # Conglomerate dataset of SmolTalk from HF
-├── tests
-│   ├── test_attention_fallback.py  # FA3/SDPA attention fallback
-│   ├── test_engine.py              # Inference engine, KV cache
-│   ├── test_execution.py           # Sandboxed code execution
-│   ├── test_optim.py               # MuonAdamW optimizer (needs GPU)
-│   ├── test_tasks.py               # Task slicing, mixtures, HubDataset
-│   └── test_tokenizer.py           # BPE round-trips, chat rendering
-└── uv.lock
+Run this command **on your local laptop** to download both the Base and SFT checkpoint directories:
+```bash
+rsync -avz -e "ssh -i ~/.runpod/ssh/runpodctl-ssh-key -p 32673" root@157.157.221.29:/root/.cache/nanochat/base_checkpoints/ ~/nanochat/base_checkpoints/
+rsync -avz -e "ssh -i ~/.runpod/ssh/runpodctl-ssh-key -p 32673" root@157.157.221.29:/root/.cache/nanochat/chatsft_checkpoints/ ~/nanochat/chatsft_checkpoints/
 ```
 
-## Contributing
+---
 
-The goal of nanochat is to improve the state of the art in micro models that are accessible to work with end to end on budgets of < $1000 dollars. Accessibility is about overall cost but also about cognitive complexity - nanochat is not an exhaustively configurable LLM "framework"; there are no giant configuration objects, model factories, or if-then-else monsters in the code base. It is a single, cohesive, minimal, readable, hackable, maximally-forkable "strong baseline" codebase designed to run start to end and produce a ChatGPT model you can talk to. Currently, the most interesting part personally is speeding up the latency to GPT-2 (i.e. getting a CORE score above 0.256525). Currently this takes ~1.5 hours (down from 3h), but by improving the pretraining stage we can improve this further.
+## 🤗 Hugging Face Backup
 
-Current AI policy: disclosure. When submitting a PR, please declare any parts that had substantial LLM contribution and that you have not written or that you do not fully understand.
+Both your pretrained **Base** and fine-tuned **SFT** checkpoints have been successfully uploaded and are publicly/safely backed up on the Hugging Face Hub:
 
-## Acknowledgements
+- **Hugging Face Repository:** **`niuk77/nanochat-d12`**
+- **SFT Checkpoints Folder:** `/sft`
+- **Base Checkpoints Folder:** `/base`
 
-- The name (nanochat) derives from my earlier project [nanoGPT](https://github.com/karpathy/nanoGPT), which only covered pretraining.
-- nanochat is also inspired by [modded-nanoGPT](https://github.com/KellerJordan/modded-nanogpt), which gamified the nanoGPT repo with clear metrics and a leaderboard, and borrows a lot of its ideas and some implementation for pretraining.
-- Thank you to [HuggingFace](https://huggingface.co/) for fineweb and smoltalk.
-- Thank you [Lambda](https://lambda.ai/service/gpu-cloud) for the compute used in developing this project.
-- Thank you to chief LLM whisperer 🧙‍♂️ Alec Radford for advice/guidance.
-- Thank you to the repo czar Sofie [@svlandeg](https://github.com/svlandeg) for help with managing issues, pull requests and discussions of nanochat.
+You can view, share, or download them directly from the web interface at:
+👉 **[huggingface.co/niuk77/nanochat-d12](https://huggingface.co/niuk77/nanochat-d12)**
 
-## Cite
+---
 
-If you find nanochat helpful in your research cite simply as:
+### 🗂️ What Was Downloaded to Your Laptop:
 
-```bibtex
-@misc{nanochat,
-  author = {Andrej Karpathy},
-  title = {nanochat: The best ChatGPT that \$100 can buy},
-  year = {2025},
-  publisher = {GitHub},
-  url = {https://github.com/karpathy/nanochat}
-}
+For both **Base** and **SFT** runs, a total of **~3.8 GB** of data has been transferred to your laptop, structured under `~/nanochat/base_checkpoints/d12/` and `~/nanochat/chatsft_checkpoints/d12/`:
+
+1.  **`model_001680.pt` / `model_000007.pt` (757 MB each):**
+    -   Contains the **286 million** model parameters (weights).
+    -   Saved in **`bfloat16`** precision format (`2 bytes` per parameter, resulting in the ~572 MB pure parameter footprint + layer scales/heads).
+2.  **`optim_001680_rank0.pt` / `optim_000007_rank0.pt` (1.2 GB each):**
+    -   Contains the **AdamW optimizer states** (momentum & variance buffers) for restarting training.
+    -   Takes up more space as optimizer states require 32-bit float accuracy (`4 bytes` per tracked parameter).
+3.  **`meta_001680.json` / `meta_000007.json` (~1 KB each):**
+    -   JSON files specifying configuration (e.g., number of layers, heads, dimension) and training meta-metrics (like validation loss).
+
+---
+
+## 🔄 Resuming or Restoring on a New Pod (Future Training / Testing)
+
+Yes, absolutely! Because you have successfully downloaded the checkpoints (`.pt` weights and `.pt` optimizer files) to your laptop, you can confidently delete your active pod now to save costs. 
+
+In the future, you can spin up a new pod and fully restore your model to:
+- **Continue testing / chatting** with the model.
+- **Resume pretraining further** (starting right where you left off).
+- **Run more SFT fine-tuning epochs**.
+
+---
+
+### Step 1: Re-Sync Your Codebase to the New Pod
+Deploy a new pod, install `rsync`, and sync your codebase from your laptop:
+```bash
+# On your local laptop:
+rsync -rltvz -e "ssh -i ~/.runpod/ssh/runpodctl-ssh-key -p <NEW_PORT>" \
+  --exclude=".git" --exclude=".venv" --exclude="__pycache__" --exclude=".cache" \
+  ~/nanochat/ root@<NEW_IP>:/workspace/nanochat/
 ```
 
-## License
+### Step 2: Upload Your Local Checkpoints Back to the Pod
+Upload your saved checkpoints from your laptop back to the new pod's cache directory:
+```bash
+# On your local laptop:
+rsync -avz -e "ssh -i ~/.runpod/ssh/runpodctl-ssh-key -p <NEW_PORT>" \
+  ~/nanochat/base_checkpoints/ root@<NEW_IP>:/root/.cache/nanochat/base_checkpoints/
 
-MIT
+rsync -avz -e "ssh -i ~/.runpod/ssh/runpodctl-ssh-key -p <NEW_PORT>" \
+  ~/nanochat/chatsft_checkpoints/ root@<NEW_IP>:/root/.cache/nanochat/chatsft_checkpoints/
+```
+
+### Step 3: Run / Continue From Your Uploaded Checkpoints
+
+#### 💬 To Chat with your Uploaded Model:
+Simply run the chat CLI inside the new pod; it will auto-detect the uploaded checkpoints:
+```bash
+python -m scripts.chat_cli -i sft
+```
+
+#### 📈 To Resume Pretraining (Further Pretraining):
+Run the pretraining script and use the `--resume-from-step` flag. This will automatically load your weights AND load the FP32 AdamW optimizer momentums (`optim_001680_rank0.pt`) to seamlessly resume training:
+```bash
+torchrun --standalone --nproc_per_node=1 -m scripts.base_train -- \
+  --depth=12 \
+  --target-param-data-ratio=8 \
+  --device-batch-size=16 \
+  --resume-from-step=1680
+```
