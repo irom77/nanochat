@@ -10,4 +10,7 @@ eval_bundle/
 
 # Local setup
 CLAUDE.md
+RUNPOD.md
 wandb/
+base_checkpoints/
+chatsft_checkpoints/
