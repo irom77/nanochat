@@ -14,3 +14,4 @@ RUNPOD.md
 wandb/
 base_checkpoints/
 chatsft_checkpoints/
+.vscode/
