@@ -9,7 +9,7 @@ explicitly.
 ## 2026-09-25
 
 | train commit | eval commit | GPU | steps | warmup | training time | val_bpb | CORE | peak memory | result |
-|---|---|---:|---:|---:|---:|---:|---:|---|
+|---|---|---|---:|---:|---:|---:|---:|---:|---|---|
 | `d05bd40` | `07697a8` | 1x H100 80GB HBM3 | 150 | 40 | 141.41 s | 1.249343 | — | 28,817 MiB | baseline; full CORE stopped before first task completed |
 | `d05bd40` | `07697a8` | 1x H100 80GB HBM3 | 150 | 15 | 139.14 s | 1.297368 | — | 28,817 MiB | discarded; worse BPB |
 
