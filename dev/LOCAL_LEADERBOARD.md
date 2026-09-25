@@ -21,5 +21,5 @@ time. A dash in CORE means the full CORE evaluation was not completed.
 
 | # | time | GPU | val_bpb | CORE | Description | Date | Commit | Status |
 |---|---:|---|---:|---:|---|---|---|---|
-| S1 | 141.41 s training | 1x H100 80GB | 1.249343 | — | d12 baseline, 150 steps | Sep 25 2026 | train `d05bd40`, eval `6af5ebd` | incomplete CORE |
-| S2 | 139.14 s training | 1x H100 80GB | 1.297368 | — | d12, warmup steps 40→15 | Sep 25 2026 | train `d05bd40`, eval `6af5ebd` | discarded |
+| S1 | 141.41 s training | 1x H100 80GB | 1.249343 | — | d12 baseline, 150 steps | Sep 25 2026 | train `d05bd40`, eval `07697a8` | incomplete CORE |
+| S2 | 139.14 s training | 1x H100 80GB | 1.297368 | — | d12, warmup steps 40→15 | Sep 25 2026 | train `d05bd40`, eval `07697a8` | discarded |

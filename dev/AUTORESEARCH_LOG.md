@@ -10,8 +10,8 @@ explicitly.
 
 | train commit | eval commit | GPU | steps | warmup | training time | val_bpb | CORE | peak memory | result |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| `d05bd40` | `6af5ebd` | 1x H100 80GB HBM3 | 150 | 40 | 141.41 s | 1.249343 | — | 28,817 MiB | baseline; full CORE stopped before first task completed |
-| `d05bd40` | `6af5ebd` | 1x H100 80GB HBM3 | 150 | 15 | 139.14 s | 1.297368 | — | 28,817 MiB | discarded; worse BPB |
+| `d05bd40` | `07697a8` | 1x H100 80GB HBM3 | 150 | 40 | 141.41 s | 1.249343 | — | 28,817 MiB | baseline; full CORE stopped before first task completed |
+| `d05bd40` | `07697a8` | 1x H100 80GB HBM3 | 150 | 15 | 139.14 s | 1.297368 | — | 28,817 MiB | discarded; worse BPB |
 
 Evaluation used a fixed `--split-tokens=524288` BPB pass. The full CORE pass
 was attempted with nanochat's evaluator but stopped during the first large
