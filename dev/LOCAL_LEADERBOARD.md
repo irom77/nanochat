@@ -23,3 +23,5 @@ time. A dash in CORE means the full CORE evaluation was not completed.
 |---|---:|---|---:|---:|---|---|---|---|
 | S1 | 141.41 s training | 1x H100 80GB | 1.249343 | — | d12 baseline, 150 steps | Sep 25 2026 | train `d05bd40`, eval `07697a8` | incomplete CORE |
 | S2 | 139.14 s training | 1x H100 80GB | 1.297368 | — | d12, warmup steps 40→15 | Sep 25 2026 | train `d05bd40`, eval `07697a8` | discarded |
+| S3 | 136.04 s training | 1x H100 80GB | 1.335156 | — | d12, matrix-lr 0.020→0.016, 150 steps | Sep 25 2026 | train `d05bd40`, eval `07697a8` | discarded |
+| S4 | 134.72 s training | 1x H100 80GB | 1.215574 | 0.0011 | d12, matrix-lr 0.020→0.024, 150 steps | Sep 25 2026 | train `d05bd40`, eval `07697a8` | retained local candidate; full CORE |
