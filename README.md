@@ -4,6 +4,7 @@ Welcome to your personalized **NanoChat** repository! This project hosts a custo
 
 - **Upstream Repository Details & Guide:** See **[README_original.md](README_original.md)** for the original Karpathy framework features and codebase guides.
 - **Hugging Face Model Repository:** Both your pretrained Base and conversational SFT weights (totaling ~3.8 GB) are safely hosted and publicly available at **[huggingface.co/niuk77/nanochat-d12](https://huggingface.co/niuk77/nanochat-d12)**.
+- **Beginner Manual Prompting Guide:** See **[docs/HUGGINGFACE_MANUAL_GUIDE.md](docs/HUGGINGFACE_MANUAL_GUIDE.md)** for how to download, run, and manually prompt the Hugging Face checkpoints.
 - **Local Leaderboard Comparison:** See **[dev/LOCAL_LEADERBOARD.md](dev/LOCAL_LEADERBOARD.md)** for local autoresearch screening results alongside a snapshot of the official leaderboard. These local rows are non-official and are not time-comparable to the official 8×H100 results.
 
 ---
